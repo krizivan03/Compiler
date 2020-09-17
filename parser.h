@@ -14,12 +14,13 @@
 using namespace std;
 class Parser {
   public:
-    void ConsumeAllInput();
+    struct monomial{
+      int order = 0;
+      int exponent = 1;
+    };
 
-  // private:
     LexicalAnalyzer lexer;
- 
-
+    void ConsumeAllInput();
     void syntax_error();
     void parse_input();
     void parse_program();
@@ -32,7 +33,7 @@ class Parser {
     void parse_term_list();
     void parse_term();
     void parse_monomial_list();
-    void parse_monomial();
+    monomial *parse_monomial();
     int parse_exponent();
     void parse_add_operator();
     int parse_coefficient(); 

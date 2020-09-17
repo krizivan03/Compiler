@@ -1,5 +1,0 @@
-POLY T(D) = D^D + 1;
-START
-INPUT X;
-T(X);
-1 2 3 9 4

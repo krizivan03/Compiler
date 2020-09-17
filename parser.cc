@@ -113,6 +113,9 @@ vector<string> Parser::parse_poly_header(){ // F(args)
         expect(RPAREN);
     }else if (t.token_type==EQUAL)
     {
+        // if (theIDS.size()==0){ // MAYBE
+        //     theIDS.push_back("x");
+        // }
         return theIDS;
     }
     else
@@ -197,12 +200,16 @@ void Parser::parse_monomial_list(){ // 3xyz the monomial list is xyz
     }
     
 }
-void Parser::parse_monomial(){ // 3x^2
-    expect(ID);
-    Token t = lexer.peek(1);
+struct Parser::monomial* Parser::parse_monomial(){ // 3x^2
+    struct monomial *p = (struct monomial *)malloc(sizeof(struct monomial));
+    Token t = expect(ID);
+    // p->order = variables.at(t.lexeme);
+    t = lexer.peek(1);
     if (t.token_type==POWER){
-        parse_exponent();
+        p->exponent = parse_exponent();
     }
+    
+    return p;
 }
 
 void Parser::parse_inputs(){ // actually grabs all inputs ,  1 4 3 4 5
