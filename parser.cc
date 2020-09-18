@@ -80,136 +80,146 @@ void Parser::parse_program(){
     parse_START();
 }
 
-void Parser::parse_poly_decl_section(){
-    parse_poly_decl();
-
+Parser::poly_dec *Parser::parse_poly_decl_section(){
+    Parser::poly_dec *head_poly_dec;
+    head_poly_dec = parse_poly_decl();
     Token t = lexer.peek(1);
     if (t.token_type==POLY)
     {
-        parse_poly_decl_section();
+        head_poly_dec->next_poly_dec= parse_poly_decl_section();
     }
+    return head_poly_dec;
 }
-void Parser::parse_poly_decl(){
-    expect(POLY);
-    parse_poly_header();
+ Parser::poly_dec *Parser::parse_poly_decl(){
+    Parser::poly_dec *apoly_dec = new Parser::poly_dec;
+    Token t = expect(POLY);
+    apoly_dec->name = lexer.peek(1).lexeme;
+    apoly_dec->theparam_IDs = parse_poly_header();
     expect(EQUAL);
-    parse_poly_body();
+    apoly_dec->terms = parse_poly_body();
     expect(SEMICOLON);
+    return apoly_dec;
 }
 void Parser::parse_START(){
     expect(START);
     parse_statement_list();
-
 }
-vector<string> Parser::parse_poly_header(){ // F(args)
-    vector<string> theIDS;
-
+Parser::param_ID* Parser::parse_poly_header(){ // F(args)
+    Parser::param_ID * theparam_IDs;
     parse_poly_name();
     Token t = lexer.peek(1);
     if (t.token_type == LPAREN)
     {
         expect(LPAREN);
-        theIDS = parse_id_list();
+        theparam_IDs = parse_id_list(0);
         expect(RPAREN);
     }else if (t.token_type==EQUAL)
     {
-        // if (theIDS.size()==0){ // MAYBE
-        //     theIDS.push_back("x");
-        // }
-        return theIDS;
+        theparam_IDs = new Parser::param_ID;
+        theparam_IDs->ID = "x";
+        theparam_IDs->order=0;
+        theparam_IDs->next= NULL;
+        return theparam_IDs;
     }
     else
     {
         syntax_error();
     }
+    return theparam_IDs;
 }
-vector<string> Parser::parse_id_list(){
-    vector<string> anID; //
+Parser::param_ID* Parser::parse_id_list(int n){
+    Parser::param_ID * aparam_ID = new Parser::param_ID;
     Token t = expect(ID);
-    anID.push_back(t.lexeme); //
+    aparam_ID->ID = t.lexeme;
+    aparam_ID->order = n;
     t = lexer.peek(1);
     if (t.token_type == COMMA)
     {
         expect(COMMA);
-        vector<string> restID = parse_id_list();
-        anID.insert(anID.end(),restID.begin(),restID.end());
+        aparam_ID->next = parse_id_list(++n);
     }
     else if (t.token_type == RPAREN)
     {
-        return anID;
+        return aparam_ID;
     }
     else
     {
         syntax_error();
-    }   
+    }
+    return aparam_ID;
 }
-void Parser::parse_poly_name(){ // just gets ID of Poly, for instance Poly F, just gets F
-    Token t = expect(ID);
-}
-void Parser::parse_poly_body(){ // just calls term list  down there.
-    parse_term_list();
+Parser::term * Parser::parse_poly_body(){ // just calls term list  down there.
+    return parse_term_list();
 }
 
-void Parser::parse_term_list(){ // parses {3x^2 +2x + 2 } where each monomials and +- are terms
-    parse_term();
+Parser::term * Parser::parse_term_list(){ // parses {3x^2 +2x + 2 } where each monomials and +- are terms
+    Parser::term *head_term;
+    head_term = parse_term();
     Token t = lexer.peek(1);
     if (t.token_type  == PLUS ||t.token_type  == MINUS)
     {
-        parse_add_operator();
-        parse_term_list();
+        head_term->addOperator =  parse_add_operator();
+        head_term->next = parse_term_list();
     }
     else if (t.token_type == SEMICOLON)
     {
-        return;
+        head_term->addOperator = SEMICOLON; // to find end
     }
     else
     {
         syntax_error();
-    }  
+    }
+    return head_term;
 }
-void Parser::parse_term(){ // Term will either be x ,  3x, 3x^2, x^2y
+Parser::term * Parser::parse_term(){ // Term will either be x ,  3x, 3x^2, x^2y
+    Parser::term *a_term = new Parser::term;
     Token t = lexer.peek(1);
     switch (t.token_type)
     {
     case ID:
-        parse_monomial_list();
+        a_term->coefficient = 1;
+        a_term->head_monomial = parse_monomial_list();
         break;
     case NUM:
-        parse_coefficient();
+        a_term->coefficient = parse_coefficient();
         t = lexer.peek(1);
         if (t.token_type == ID)
         {
-            parse_monomial_list();
+            a_term->head_monomial = parse_monomial_list();
         }
-        else
-        {
-            return;
-        }
+        // else
+        // {
+        //     a_term->head_monomial = NULL;
+        // }
         break;
-    
     default:
         syntax_error();
     }
+    return a_term;
 }
-void Parser::parse_monomial_list(){ // 3xyz the monomial list is xyz
-    parse_monomial();
+Parser::monomial*  Parser::parse_monomial_list(){ // 3xyz the monomial list is xyz
+    Parser::monomial *head_monomial; 
+    head_monomial = parse_monomial();
     Token t = lexer.peek(1);
     if (t.token_type==ID)
     {
-        parse_monomial_list();
+        head_monomial->next = parse_monomial_list();
     }
-    
+    return head_monomial;   
 }
-struct Parser::monomial* Parser::parse_monomial(){ // 3x^2
-    struct monomial *p = (struct monomial *)malloc(sizeof(struct monomial));
+Parser::monomial* Parser::parse_monomial(){ // 3x^2
+    Parser::monomial *a_monomial = new Parser::monomial;
     Token t = expect(ID);
     // p->order = variables.at(t.lexeme);
     t = lexer.peek(1);
     if (t.token_type==POWER){
-        p->exponent = parse_exponent();
+        a_monomial->exponent = parse_exponent();
     }
-    
-    return p;
+    else
+    {
+        a_monomial->exponent = 1;    
+    }
+    return a_monomial;
 }
 
 void Parser::parse_inputs(){ // actually grabs all inputs ,  1 4 3 4 5
@@ -225,19 +235,19 @@ int Parser::parse_exponent(){ // ^2 , ^ is power , 2 is num
     Token t = expect(NUM);
     return stoi(t.lexeme);
 }
-void Parser::parse_add_operator(){
+TokenType Parser::parse_add_operator(){
     Token t = lexer.peek(1);
     if (t.token_type==PLUS)
     {
-        expect(PLUS);
+        t = expect(PLUS);
     }else if (t.token_type==MINUS)
     {
-        expect(MINUS);
+        t = expect(MINUS);
     }else
     {
         syntax_error();
     }
-    
+    return t.token_type;
 }
 int Parser::parse_coefficient(){
     Token t = expect(NUM);
@@ -280,6 +290,10 @@ void Parser::parse_poly_eval(){  // F(args)
     expect(LPAREN);
     parse_arg_list();
     expect(RPAREN);
+}
+string Parser::parse_poly_name(){ // just gets ID of Poly, for instance Poly F, just gets F
+    Token t = expect(ID);
+    return t.lexeme;
 }
 void Parser::parse_arg_list(){ // (x,y) x and y are the args
     parse_arg();
