@@ -9,6 +9,8 @@
  */
 #include <iostream>
 #include <cstdlib>
+#include <set>
+
 
 
 #include "parser.h"
@@ -17,6 +19,7 @@
 using namespace std;
 Parser::param_ID *currentParams;
 Parser::poly_dec *thePolyDeclarations;
+Parser::stmt *theSMTS;
 map<string,int> variables;
 vector<int> inputs;
 int next_location = 0;
@@ -78,17 +81,48 @@ void Parser::parse_input(){
 }
 
 void Parser::parse_program(){
-    thePolyDeclarations = parse_poly_decl_section();
+    thePolyDeclarations = parse_poly_decl_section(); Error_Code1(); 
     parse_START();
 }
-void Error_Code1(){
-
+void Parser::Error_Code1(){
+    Parser::poly_dec * p = thePolyDeclarations;
+    map<string,int> temp;
+    set<int> duplicates;
+     
+    while (p!=NULL)
+    {
+        if (temp.find(p->name)!=temp.end()) // is present
+        {
+            // if (find(duplicates.begin(),duplicates.end(),temp[p->name])==duplicates.end()) // isnt present?
+            // {
+            //     duplicates.push_back(temp[p->name]);    
+            // }
+            // duplicates.push_back(p->theToken.line_no);
+            duplicates.insert(temp[p->name]);
+            duplicates.insert(p->theToken.line_no);
+            
+        }else
+        {
+            string name = p->name;
+            int lineNo = p->theToken.line_no;
+            temp.insert({name,lineNo});
+        }
+        p = p->next_poly_dec;
+    }
+    if (duplicates.size()>0)
+    {
+     cout << "Error Code 1:";
+     for (auto elem : duplicates)
+        {
+        cout << elem << " ";
+        }
+    }   
 }
 
 Parser::poly_dec *Parser::parse_poly_decl_section(){
     Parser::poly_dec *head_poly_dec;
     head_poly_dec = parse_poly_decl();
-    Token t = lexer.peek(1);
+    Token t = lexer.peek(1); 
     if (t.token_type==POLY)
     {
         head_poly_dec->next_poly_dec= parse_poly_decl_section();
@@ -98,7 +132,8 @@ Parser::poly_dec *Parser::parse_poly_decl_section(){
  Parser::poly_dec *Parser::parse_poly_decl(){
     Parser::poly_dec *apoly_dec = new Parser::poly_dec;
     Token t = expect(POLY);
-    apoly_dec->name = lexer.peek(1).lexeme;
+    t =lexer.peek(1);
+    apoly_dec->name = t.lexeme; apoly_dec->theToken = t;
     apoly_dec->theparam_IDs = parse_poly_header();
     expect(EQUAL);
     apoly_dec->terms = parse_poly_body(); currentParams = NULL;
@@ -107,8 +142,9 @@ Parser::poly_dec *Parser::parse_poly_decl_section(){
 }
  
 void Parser::parse_START(){
+    
     expect(START);
-    parse_statement_list();
+    theSMTS =  parse_statement_list();
 }
 Parser::param_ID* Parser::parse_poly_header(){ // F(args)
     Parser::param_ID * theparam_IDs;
@@ -267,37 +303,48 @@ int Parser::parse_coefficient(){
     Token t = expect(NUM);
     return stoi(t.lexeme);
 }
-void Parser::parse_statement_list(){
-    parse_statement();
+Parser::stmt *Parser::parse_statement_list(){
+    Parser::stmt *head_stmt;
+    head_stmt = parse_statement(); head_stmt->next = NULL;
     Token t = lexer.peek(1);
     if (t.token_type == ID || t.token_type == INPUT )
     {
-        parse_statement_list();
+        head_stmt->next = parse_statement_list();
     }
+    return head_stmt;
 }
-void Parser::parse_statement(){
+Parser::stmt *Parser::parse_statement(){
+    Parser::stmt *astmt = new Parser::stmt;
     Token t = lexer.peek(1);
     switch (t.token_type)
     {
     case INPUT:
-        parse_input_statement();
+        astmt->stmt_type = 0;
+        astmt->poly_name = parse_input_statement().lexeme;
+        astmt->variable = variables[astmt->poly_name];
         break;
     case ID:
-        parse_poly_eval_statement();
+        astmt->stmt_type = 1;
+        astmt->p = parse_poly_eval_statement(); 
         break;
     default:
         syntax_error();
     }
+    return astmt;
 
 }
-void Parser::parse_poly_eval_statement(){ // F(args);
-    parse_poly_eval();
+Parser::poly_eval * Parser::parse_poly_eval_statement(){ // F(args);
+    Parser::poly_eval *p;
+    p = parse_poly_eval();
     expect(SEMICOLON);
+    return p;
 }
-void Parser::parse_input_statement(){
+Token Parser::parse_input_statement(){
     expect(INPUT);
-    allocateMem(expect(ID));
+    Token t = expect(ID);
+    allocateMem(t);
     expect(SEMICOLON);
+    return t;
 }
 Parser::poly_eval * Parser::parse_poly_eval(){  // F(args)
     Parser::poly_eval * apoly_eval = new Parser::poly_eval;

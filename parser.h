@@ -32,6 +32,7 @@ class Parser {
     }param_ID;
     typedef struct poly_dec{
       string name;
+      Token theToken;
       param_ID * theparam_IDs;
       term * terms;
       poly_dec * next_poly_dec = NULL;
@@ -39,9 +40,9 @@ class Parser {
     /*----------------------------------------------*/
     struct poly_eval;
     typedef struct arg{
-      TokenType arg_type; // 0 NUM , 1 ID, 2 poly_eval
-      int value; // if NUM
-      int index;
+      TokenType arg_type; // NUM , ID, POLY (for poly_eval)
+      int value = -3232; // if NUM
+      int index = -3232;
       poly_eval *p = NULL;
       arg* next;
     }arg;
@@ -54,7 +55,8 @@ class Parser {
     typedef struct stmt{
       int stmt_type = 0; // 0 INPUT , 1 POLY EVAL
       poly_eval *p = NULL;
-      int variable;
+      int variable = -3232;
+      string poly_name;
       stmt* next;
     }stmt;
     
@@ -63,6 +65,7 @@ class Parser {
     LexicalAnalyzer lexer;
     void ConsumeAllInput();
     void syntax_error();
+    void Error_Code1();
     void parse_input();
     void parse_program();
     poly_dec *parse_poly_decl_section();
@@ -80,10 +83,10 @@ class Parser {
     int parse_coefficient(); 
     void parse_START();
     void parse_inputs();
-    void parse_statement_list();
-    void parse_statement();
-    void parse_poly_eval_statement();
-    void parse_input_statement();
+    stmt *parse_statement_list();
+    stmt *parse_statement();
+    poly_eval * parse_poly_eval_statement();
+    Token parse_input_statement();
     poly_eval *parse_poly_eval();
     arg * parse_arg_list();
     arg * parse_arg();
