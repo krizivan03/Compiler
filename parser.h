@@ -36,6 +36,26 @@ class Parser {
       term * terms;
       poly_dec * next_poly_dec = NULL;
     }poly_dec;
+    /*----------------------------------------------*/
+    
+    typedef struct arg{
+      TokenType arg_type; // 0 NUM , 1 ID, 2 poly_eval
+      int value;
+      int index;
+      struct poly_eval *p = NULL;
+    }arg;
+    typedef struct poly_eval{
+      poly_dec *apoly_dec;
+      arg *theArgs;
+    }poly_eval;
+
+    typedef struct stmt{
+      int stmt_type = 0; // 0 INPUT , 1 POLY EVAL
+      poly_eval *p = NULL;
+      int variable;
+      stmt* next;
+    }stmt;
+    
     
 
     LexicalAnalyzer lexer;
@@ -67,7 +87,7 @@ class Parser {
     void parse_arg();
     void allocateMem(Token t);
     void storeInput(Token t);
-
+    void getOrder(poly_dec *apoly_dec);
     Token expect(TokenType expected_type);
 };
 

@@ -15,6 +15,8 @@
 
 
 using namespace std;
+Parser::param_ID *currentParams;
+Parser::poly_dec *thePolyDeclarations;
 map<string,int> variables;
 vector<int> inputs;
 int next_location = 0;
@@ -76,8 +78,11 @@ void Parser::parse_input(){
 }
 
 void Parser::parse_program(){
-    parse_poly_decl_section();
+    thePolyDeclarations = parse_poly_decl_section();
     parse_START();
+}
+void Error_Code1(){
+
 }
 
 Parser::poly_dec *Parser::parse_poly_decl_section(){
@@ -96,10 +101,11 @@ Parser::poly_dec *Parser::parse_poly_decl_section(){
     apoly_dec->name = lexer.peek(1).lexeme;
     apoly_dec->theparam_IDs = parse_poly_header();
     expect(EQUAL);
-    apoly_dec->terms = parse_poly_body();
+    apoly_dec->terms = parse_poly_body(); currentParams = NULL;
     expect(SEMICOLON);
     return apoly_dec;
 }
+ 
 void Parser::parse_START(){
     expect(START);
     parse_statement_list();
@@ -119,12 +125,14 @@ Parser::param_ID* Parser::parse_poly_header(){ // F(args)
         theparam_IDs->ID = "x";
         theparam_IDs->order=0;
         theparam_IDs->next= NULL;
+        currentParams = theparam_IDs;
         return theparam_IDs;
     }
     else
     {
         syntax_error();
     }
+    currentParams = theparam_IDs;
     return theparam_IDs;
 }
 Parser::param_ID* Parser::parse_id_list(int n){
@@ -187,10 +195,10 @@ Parser::term * Parser::parse_term(){ // Term will either be x ,  3x, 3x^2, x^2y
         {
             a_term->head_monomial = parse_monomial_list();
         }
-        // else
-        // {
-        //     a_term->head_monomial = NULL;
-        // }
+        else
+        {
+            a_term->head_monomial = NULL;
+        }
         break;
     default:
         syntax_error();
@@ -209,8 +217,14 @@ Parser::monomial*  Parser::parse_monomial_list(){ // 3xyz the monomial list is x
 }
 Parser::monomial* Parser::parse_monomial(){ // 3x^2
     Parser::monomial *a_monomial = new Parser::monomial;
+    Parser::param_ID *p =currentParams;
     Token t = expect(ID);
-    // p->order = variables.at(t.lexeme);
+    while (p->ID!=t.lexeme)
+    {
+        p = p->next;
+    }
+    a_monomial->order = p->order;
+    
     t = lexer.peek(1);
     if (t.token_type==POWER){
         a_monomial->exponent = parse_exponent();
@@ -304,15 +318,15 @@ void Parser::parse_arg_list(){ // (x,y) x and y are the args
         parse_arg_list();
     }
     
-    
 }
 void Parser::parse_arg(){ // x, y inside parenthesis
+    
     Token t = lexer.peek(1);
     switch (t.token_type)
     {
     case ID:
         t = lexer.peek(2);
-        if (t.token_type==LPAREN) // I'm not sure about this. still passes though .
+        if (t.token_type==LPAREN) 
         {
             parse_poly_eval();
         }else
