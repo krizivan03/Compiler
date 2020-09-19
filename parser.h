@@ -37,15 +37,17 @@ class Parser {
       poly_dec * next_poly_dec = NULL;
     }poly_dec;
     /*----------------------------------------------*/
-    
+    struct poly_eval;
     typedef struct arg{
       TokenType arg_type; // 0 NUM , 1 ID, 2 poly_eval
-      int value;
+      int value; // if NUM
       int index;
-      struct poly_eval *p = NULL;
+      poly_eval *p = NULL;
+      arg* next;
     }arg;
     typedef struct poly_eval{
-      poly_dec *apoly_dec;
+      // poly_dec *apoly_dec;
+      string poly_name;
       arg *theArgs;
     }poly_eval;
 
@@ -82,9 +84,9 @@ class Parser {
     void parse_statement();
     void parse_poly_eval_statement();
     void parse_input_statement();
-    void parse_poly_eval();
-    void parse_arg_list();
-    void parse_arg();
+    poly_eval *parse_poly_eval();
+    arg * parse_arg_list();
+    arg * parse_arg();
     void allocateMem(Token t);
     void storeInput(Token t);
     void getOrder(poly_dec *apoly_dec);

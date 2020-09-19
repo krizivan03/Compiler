@@ -299,28 +299,31 @@ void Parser::parse_input_statement(){
     allocateMem(expect(ID));
     expect(SEMICOLON);
 }
-void Parser::parse_poly_eval(){  // F(args)
-    parse_poly_name();
+Parser::poly_eval * Parser::parse_poly_eval(){  // F(args)
+    Parser::poly_eval * apoly_eval = new Parser::poly_eval;
+    apoly_eval->poly_name = parse_poly_name();
     expect(LPAREN);
-    parse_arg_list();
+    apoly_eval->theArgs = parse_arg_list();
     expect(RPAREN);
+    return apoly_eval;
 }
 string Parser::parse_poly_name(){ // just gets ID of Poly, for instance Poly F, just gets F
     Token t = expect(ID);
     return t.lexeme;
 }
-void Parser::parse_arg_list(){ // (x,y) x and y are the args
-    parse_arg();
+Parser::arg *Parser::parse_arg_list(){ // (x,y) x and y are the args
+    Parser::arg *head_arg;
+    head_arg = parse_arg();
     Token t = lexer.peek(1);
     if (t.token_type==COMMA)
     {
         expect(COMMA);
-        parse_arg_list();
+        head_arg->next =parse_arg_list();
     }
-    
+    return head_arg;
 }
-void Parser::parse_arg(){ // x, y inside parenthesis
-    
+Parser::arg *Parser::parse_arg(){ // x, y inside parenthesis
+    Parser::arg *anArg = new Parser::arg;
     Token t = lexer.peek(1);
     switch (t.token_type)
     {
@@ -328,18 +331,26 @@ void Parser::parse_arg(){ // x, y inside parenthesis
         t = lexer.peek(2);
         if (t.token_type==LPAREN) 
         {
-            parse_poly_eval();
+            anArg->arg_type = POLY;
+            anArg->p = parse_poly_eval(); 
         }else
         {
-            expect(ID);
-        }break;
+            t = expect(ID);
+            anArg->arg_type = t.token_type;
+            anArg->index = variables[t.lexeme]; // might break tbh
+        }
+        break;
     case NUM:
-        expect(NUM);
+        t = expect(NUM);
+        anArg->arg_type = t.token_type;
+        anArg->value = stoi (t.lexeme);
         break;
     default:
-        parse_poly_eval();
+        anArg->arg_type = POLY;
+        anArg->p = parse_poly_eval(); 
         break;
     }
+    return anArg;
 }
 // Memory Allocation
 void Parser::allocateMem(Token t){
