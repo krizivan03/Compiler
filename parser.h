@@ -15,6 +15,7 @@ using namespace std;
 class Parser {
   public:
     typedef struct monomial{
+      Token theToken;
       int order = 0;
       int exponent = 1;
       monomial * next = NULL;
@@ -66,6 +67,10 @@ class Parser {
     void ConsumeAllInput();
     void syntax_error();
     void Error_Code1();
+    void Error_Code2();
+    void Error_Code3();
+    void Error_Code4();
+    void Error_Code5();
     void parse_input();
     void parse_program();
     poly_dec *parse_poly_decl_section();

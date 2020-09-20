@@ -81,7 +81,8 @@ void Parser::parse_input(){
 }
 
 void Parser::parse_program(){
-    thePolyDeclarations = parse_poly_decl_section(); Error_Code1(); 
+    thePolyDeclarations = parse_poly_decl_section(); 
+    Error_Code1(); Error_Code2();
     parse_START();
 }
 void Parser::Error_Code1(){
@@ -93,11 +94,6 @@ void Parser::Error_Code1(){
     {
         if (temp.find(p->name)!=temp.end()) // is present
         {
-            // if (find(duplicates.begin(),duplicates.end(),temp[p->name])==duplicates.end()) // isnt present?
-            // {
-            //     duplicates.push_back(temp[p->name]);    
-            // }
-            // duplicates.push_back(p->theToken.line_no);
             duplicates.insert(temp[p->name]);
             duplicates.insert(p->theToken.line_no);
             
@@ -117,6 +113,52 @@ void Parser::Error_Code1(){
         cout << elem << " ";
         }
     }   
+}
+void Parser::Error_Code2(){
+    vector<int> temp; // lineNo 
+    Parser::poly_dec *p = thePolyDeclarations;
+    
+    while (p!=NULL)
+    {
+        Parser::param_ID *params = p->theparam_IDs;
+        Parser::term *terms = p->terms;
+        bool isValid = false;
+        
+        while (terms!=NULL)
+        {
+            Parser::monomial * m =terms->head_monomial;
+            while (m!=NULL)
+            {
+                string suspect = m->theToken.lexeme;
+                Parser::param_ID *i = params;
+                while (i!=NULL)
+                {
+                    if (suspect==i->ID)
+                    {
+                        isValid = true; break;
+                    }
+                    
+                    i = i->next;
+                }
+                if (isValid==false)
+                {
+                    temp.push_back(m->theToken.line_no);
+                }
+                isValid=false;
+                m=m->next;
+            }
+            terms = terms->next;
+        }
+        p=p->next_poly_dec;
+    }
+    if (temp.size()>0)
+    {
+        cout << "Error Code 2: ";
+     for (auto elem : temp)
+        {
+        cout << elem << " ";
+        }
+    }
 }
 
 Parser::poly_dec *Parser::parse_poly_decl_section(){
@@ -142,7 +184,6 @@ Parser::poly_dec *Parser::parse_poly_decl_section(){
 }
  
 void Parser::parse_START(){
-    
     expect(START);
     theSMTS =  parse_statement_list();
 }
@@ -253,13 +294,16 @@ Parser::monomial*  Parser::parse_monomial_list(){ // 3xyz the monomial list is x
 }
 Parser::monomial* Parser::parse_monomial(){ // 3x^2
     Parser::monomial *a_monomial = new Parser::monomial;
-    Parser::param_ID *p =currentParams;
+    
     Token t = expect(ID);
-    while (p->ID!=t.lexeme)
-    {
-        p = p->next;
-    }
-    a_monomial->order = p->order;
+    a_monomial->theToken = t;
+    
+    // Parser::param_ID *p = currentParams;
+    // while (p->ID!=t.lexeme) ORDERTEST
+    // {
+    //     p = p->next;
+    // }
+    // a_monomial->order = p->order;
     
     t = lexer.peek(1);
     if (t.token_type==POWER){
@@ -321,7 +365,7 @@ Parser::stmt *Parser::parse_statement(){
     case INPUT:
         astmt->stmt_type = 0;
         astmt->poly_name = parse_input_statement().lexeme;
-        astmt->variable = variables[astmt->poly_name];
+        // astmt->variable = variables[astmt->poly_name]; ORDERTEST
         break;
     case ID:
         astmt->stmt_type = 1;
@@ -384,7 +428,7 @@ Parser::arg *Parser::parse_arg(){ // x, y inside parenthesis
         {
             t = expect(ID);
             anArg->arg_type = t.token_type;
-            anArg->index = variables[t.lexeme]; // might break tbh
+            // anArg->index = variables[t.lexeme]; // ORDERTEST
         }
         break;
     case NUM:
