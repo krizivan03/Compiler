@@ -10,6 +10,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <set>
+#include <algorithm>
 
 
 
@@ -45,34 +46,7 @@ Token Parser::expect(TokenType expected_type)
     return t;
 }
 
-// Parsing
 
-// This function is simply to illustrate the GetToken() function
-// you will not need it for your project and you can delete it
-// the function also illustrates the use of peek()
-void Parser::ConsumeAllInput()
-{
-    Token token;
-    int i = 1;
-    
-    token = lexer.peek(i);
-    token.Print();
-    while (token.token_type != END_OF_FILE)
-    {
-        i = i+1;
-        token = lexer.peek(i);
-        token.Print();
-    }
-   
-    token = lexer.GetToken();
-    token.Print();
-    while (token.token_type != END_OF_FILE)
-    {
-        token = lexer.GetToken();
-        token.Print();
-    }
-
-}
 /*------------------------------------------------------------------------*/
 void Parser::parse_input(){
     parse_program(); // The whole program
@@ -83,7 +57,7 @@ void Parser::parse_input(){
 void Parser::parse_program(){
     thePolyDeclarations = parse_poly_decl_section(); 
     Error_Code1(); Error_Code2();
-    parse_START();
+    parse_START(); Error_Code3();
 }
 void Parser::Error_Code1(){
     Parser::poly_dec * p = thePolyDeclarations;
@@ -161,6 +135,62 @@ void Parser::Error_Code2(){
     }
 }
 
+void Parser::Error_Code3(){
+    Parser::poly_dec *p =thePolyDeclarations;
+    Parser::stmt *s = theSMTS;
+    vector<string> *theDecs = new vector<string>; 
+    vector<int> *lineNos = new vector<int>;
+
+    while (p!=NULL) // theDecs
+    {
+        theDecs->push_back(p->name);
+        p=p->next_poly_dec;
+    }
+    while (s!=NULL)
+    {
+        
+        if (s->stmt_type == 1)
+        {
+            if (find(theDecs->begin(),theDecs->end(),s->theToken.lexeme)==theDecs->end()) // doesnt contain
+            {
+                lineNos->push_back(s->theToken.line_no);
+            }   
+
+            Parser::arg *a = s->p->theArgs;
+            if (a->arg_type == POLY)
+            {
+                parse_EC3args(a,theDecs,lineNos);
+            }
+        }
+            s=s->next;
+    }
+    if (lineNos->size()>0)
+    {
+        cout << "Error Code 3: ";
+     for (auto elem : *lineNos)
+        {
+        cout << elem << " ";
+        }
+    }
+
+}
+void Parser::parse_EC3args(Parser::arg *a,vector<string> *d,vector<int> *l){
+        while (a!=NULL)
+        {
+            if (a->arg_type == POLY){
+                if (find(d->begin(),d->end(),a->theToken.lexeme)==d->end()) { // oesnt contain
+                    l->push_back(a->theToken.line_no);
+                }
+                
+                if (a->p->theArgs->arg_type == POLY)
+                {
+                    parse_EC3args(a->p->theArgs,d,l);
+                }
+            }
+            a = a->next;
+        }
+}
+
 Parser::poly_dec *Parser::parse_poly_decl_section(){
     Parser::poly_dec *head_poly_dec;
     head_poly_dec = parse_poly_decl();
@@ -173,13 +203,13 @@ Parser::poly_dec *Parser::parse_poly_decl_section(){
 }
  Parser::poly_dec *Parser::parse_poly_decl(){
     Parser::poly_dec *apoly_dec = new Parser::poly_dec;
-    Token t = expect(POLY);
+    Token t = expect(POLY); 
     t =lexer.peek(1);
     apoly_dec->name = t.lexeme; apoly_dec->theToken = t;
     apoly_dec->theparam_IDs = parse_poly_header();
-    expect(EQUAL);
+    expect(EQUAL); 
     apoly_dec->terms = parse_poly_body(); currentParams = NULL;
-    expect(SEMICOLON);
+    expect(SEMICOLON); 
     return apoly_dec;
 }
  
@@ -370,6 +400,7 @@ Parser::stmt *Parser::parse_statement(){
     case ID:
         astmt->stmt_type = 1;
         astmt->p = parse_poly_eval_statement(); 
+        astmt->theToken = t;
         break;
     default:
         syntax_error();
@@ -392,15 +423,16 @@ Token Parser::parse_input_statement(){
 }
 Parser::poly_eval * Parser::parse_poly_eval(){  // F(args)
     Parser::poly_eval * apoly_eval = new Parser::poly_eval;
-    apoly_eval->poly_name = parse_poly_name();
+    Token t = parse_poly_name();
+    apoly_eval->poly_name = t.lexeme;
     expect(LPAREN);
     apoly_eval->theArgs = parse_arg_list();
     expect(RPAREN);
     return apoly_eval;
 }
-string Parser::parse_poly_name(){ // just gets ID of Poly, for instance Poly F, just gets F
+Token Parser::parse_poly_name(){ // just gets ID of Poly, for instance Poly F, just gets F
     Token t = expect(ID);
-    return t.lexeme;
+    return t;
 }
 Parser::arg *Parser::parse_arg_list(){ // (x,y) x and y are the args
     Parser::arg *head_arg;
@@ -416,16 +448,18 @@ Parser::arg *Parser::parse_arg_list(){ // (x,y) x and y are the args
 Parser::arg *Parser::parse_arg(){ // x, y inside parenthesis
     Parser::arg *anArg = new Parser::arg;
     Token t = lexer.peek(1);
+    Token p = lexer.peek(2);
     switch (t.token_type)
     {
     case ID:
-        t = lexer.peek(2);
-        if (t.token_type==LPAREN) 
+        if (p.token_type==LPAREN) 
         {
+            anArg->theToken = t;
             anArg->arg_type = POLY;
             anArg->p = parse_poly_eval(); 
         }else
         {
+            anArg->theToken = t;
             t = expect(ID);
             anArg->arg_type = t.token_type;
             // anArg->index = variables[t.lexeme]; // ORDERTEST
@@ -433,10 +467,12 @@ Parser::arg *Parser::parse_arg(){ // x, y inside parenthesis
         break;
     case NUM:
         t = expect(NUM);
+        anArg->theToken = t;
         anArg->arg_type = t.token_type;
         anArg->value = stoi (t.lexeme);
         break;
     default:
+        anArg->theToken = t;
         anArg->arg_type = POLY;
         anArg->p = parse_poly_eval(); 
         break;
@@ -460,7 +496,6 @@ int main()
 {
     
 	Parser parser;
-	// parser.ConsumeAllInput();
     parser.parse_input();
     
 	

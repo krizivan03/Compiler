@@ -41,11 +41,12 @@ class Parser {
     /*----------------------------------------------*/
     struct poly_eval;
     typedef struct arg{
+      Token theToken;
       TokenType arg_type; // NUM , ID, POLY (for poly_eval)
       int value = -3232; // if NUM
       int index = -3232;
       poly_eval *p = NULL;
-      arg* next;
+      arg* next = NULL;
     }arg;
     typedef struct poly_eval{
       // poly_dec *apoly_dec;
@@ -58,7 +59,8 @@ class Parser {
       poly_eval *p = NULL;
       int variable = -3232;
       string poly_name;
-      stmt* next;
+      Token theToken;
+      stmt* next =NULL;
     }stmt;
     
     
@@ -68,7 +70,8 @@ class Parser {
     void syntax_error();
     void Error_Code1();
     void Error_Code2();
-    void Error_Code3();
+    void Error_Code3(); 
+    void parse_EC3args(arg *a,vector<string> *d,vector<int> *l);
     void Error_Code4();
     void Error_Code5();
     void parse_input();
@@ -77,7 +80,7 @@ class Parser {
     poly_dec *parse_poly_decl();
     param_ID* parse_poly_header();
     param_ID* parse_id_list(int order);
-    string parse_poly_name();  
+    Token parse_poly_name();  
     term * parse_poly_body();
     term *parse_term_list();
     term *parse_term();

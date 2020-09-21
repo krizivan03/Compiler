@@ -15,6 +15,7 @@
         "iterator": "cpp",
         "string_view": "cpp",
         "utility": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "iostream": "cpp"
     }
 }
