@@ -76,6 +76,7 @@ class Parser {
     void Error_Code4();
     void parse_EC4args(arg *a ,vector<int> *l,map<string,int> *temp,Token t);
     void Error_Code5();
+    void parse_EC5args(arg * args,vector<string> *availParams,vector<int> *l);
     void parse_input();
     void parse_program();
     poly_dec *parse_poly_decl_section();

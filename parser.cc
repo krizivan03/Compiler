@@ -60,6 +60,7 @@ void Parser::parse_program(){
     parse_START(); 
     Error_Code3(); 
     Error_Code4();
+    Error_Code5();
 }
 void Parser::Error_Code1(){
     Parser::poly_dec * p = thePolyDeclarations;
@@ -88,6 +89,7 @@ void Parser::Error_Code1(){
         {
         cout << elem << " ";
         }
+        exit(1);
     }   
 }
 void Parser::Error_Code2(){
@@ -134,6 +136,7 @@ void Parser::Error_Code2(){
         {
         cout << elem << " ";
         }
+        exit(1);
     }
 }
 void Parser::Error_Code3(){
@@ -186,7 +189,7 @@ void Parser::parse_EC3args(Parser::arg *a,vector<string> *d,vector<int> *l){
         while (a!=NULL)
         {
             if (a->arg_type == POLY){
-                if (find(d->begin(),d->end(),a->theToken.lexeme)==d->end()) { // oesnt contain
+                if (find(d->begin(),d->end(),a->theToken.lexeme)==d->end()) { // doesnt contain
                     l->push_back(a->theToken.line_no);
                 }
                 
@@ -198,7 +201,6 @@ void Parser::parse_EC3args(Parser::arg *a,vector<string> *d,vector<int> *l){
             a = a->next;
         }
 }
-
 void Parser::Error_Code4(){
     Parser::poly_dec *p =thePolyDeclarations;
     Parser::param_ID *ID;
@@ -239,6 +241,7 @@ void Parser::Error_Code4(){
         {
             cout << elem << " ";
         }
+        exit(1);
      }
 }
 void Parser::parse_EC4args(Parser::arg *a ,vector<int> *l,map<string,int> *temp,Token t){
@@ -261,6 +264,56 @@ void Parser::parse_EC4args(Parser::arg *a ,vector<int> *l,map<string,int> *temp,
         l->push_back(t.line_no);
     }
 }
+
+void Parser::Error_Code5(){
+    vector<int> *lineNu = new vector<int>;
+    vector<string> *availParams = new vector<string>;
+    Parser::stmt *s =theSMTS;
+    
+    while (s!=NULL)
+    {
+        if (s->stmt_type==0)
+        {
+            availParams->push_back(s->poly_name); // either token lexemme or name 
+        }
+        else
+        {
+            Parser::arg * a = s->p->theArgs;
+            parse_EC5args(a,availParams,lineNu);   
+        }
+        s = s->next;
+    }
+    if (lineNu->size()>0)
+     {
+        // sort(lineNu->begin(),lineNu->end());
+        cout<< "Error Code 5: ";
+        for (auto elem : *lineNu)
+        {
+            cout << elem << " ";
+        }
+        exit(1);
+     }
+}
+void Parser::parse_EC5args(Parser::arg * args,vector<string> *availParams,vector<int> *l){
+    while (args!=NULL)
+    {
+        if (args->arg_type == ID)
+        {
+            string a = args->theToken.lexeme;
+            if (find(availParams->begin(),availParams->end(),a)==availParams->end()) // doesnt contain
+            {
+                l->push_back(args->theToken.line_no);
+            }
+        }
+        else if (args->arg_type == POLY)
+        {
+            Parser::arg *a = args->p->theArgs;
+            parse_EC5args(a,availParams,l);
+        }
+        args=args->next;
+    }
+}
+
 
 Parser::poly_dec *Parser::parse_poly_decl_section(){
     Parser::poly_dec *head_poly_dec;
