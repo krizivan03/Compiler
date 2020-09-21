@@ -50,6 +50,7 @@ class Parser {
     }arg;
     typedef struct poly_eval{
       // poly_dec *apoly_dec;
+      Token theToken;
       string poly_name;
       arg *theArgs;
     }poly_eval;
@@ -73,6 +74,7 @@ class Parser {
     void Error_Code3(); 
     void parse_EC3args(arg *a,vector<string> *d,vector<int> *l);
     void Error_Code4();
+    void parse_EC4args(arg *a ,vector<int> *l,map<string,int> *temp,Token t);
     void Error_Code5();
     void parse_input();
     void parse_program();

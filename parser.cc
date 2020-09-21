@@ -57,7 +57,9 @@ void Parser::parse_input(){
 void Parser::parse_program(){
     thePolyDeclarations = parse_poly_decl_section(); 
     Error_Code1(); Error_Code2();
-    parse_START(); Error_Code3();
+    parse_START(); 
+    Error_Code3(); 
+    Error_Code4();
 }
 void Parser::Error_Code1(){
     Parser::poly_dec * p = thePolyDeclarations;
@@ -134,7 +136,6 @@ void Parser::Error_Code2(){
         }
     }
 }
-
 void Parser::Error_Code3(){
     Parser::poly_dec *p =thePolyDeclarations;
     Parser::stmt *s = theSMTS;
@@ -157,10 +158,16 @@ void Parser::Error_Code3(){
             }   
 
             Parser::arg *a = s->p->theArgs;
-            if (a->arg_type == POLY)
+            while (a!=NULL)
             {
+                if (a->arg_type == POLY)
+                {
                 parse_EC3args(a,theDecs,lineNos);
+                }
+                a = a->next;
             }
+            
+            
         }
             s=s->next;
     }
@@ -171,6 +178,7 @@ void Parser::Error_Code3(){
         {
         cout << elem << " ";
         }
+        exit(1);
     }
 
 }
@@ -189,6 +197,69 @@ void Parser::parse_EC3args(Parser::arg *a,vector<string> *d,vector<int> *l){
             }
             a = a->next;
         }
+}
+
+void Parser::Error_Code4(){
+    Parser::poly_dec *p =thePolyDeclarations;
+    Parser::param_ID *ID;
+    Parser::stmt * s = theSMTS;
+    vector<int> *lineNu = new vector<int>;
+    map<string,int> *temp = new map<string,int>;
+    int count = 0;
+
+    while (p!=NULL) // theDecs
+    {
+        string name = p->name;
+        ID = p->theparam_IDs;
+        while (ID!=NULL)
+        {
+            count++;
+            ID=ID->next;
+        }
+        temp->insert({name,count});count = 0;
+        p=p->next_poly_dec;
+    }
+    while (s!=NULL)
+    {
+        if (s->stmt_type == 1)
+        {
+            Parser::arg *a = s->p->theArgs;
+            Token t = s->p->theToken;
+            parse_EC4args(a,lineNu,temp,t);
+        }
+        s= s->next;
+    }
+    
+
+     if (lineNu->size()>0)
+     {
+        sort(lineNu->begin(),lineNu->end());
+        cout<< "Error Code 4: ";
+        for (auto elem : *lineNu)
+        {
+            cout << elem << " ";
+        }
+     }
+}
+void Parser::parse_EC4args(Parser::arg *a ,vector<int> *l,map<string,int> *temp,Token t){
+    int count=0;
+    int expArgs = (*temp)[t.lexeme];
+    while (a!= NULL)
+    {
+        if (a->arg_type==1)
+        {
+            Parser::arg *b = a->p->theArgs;
+            Token t2 = a->p->theToken;
+            parse_EC4args(b,l,temp,t2);
+        }
+        
+        count++;
+        a = a->next;
+    }
+    if (count!=expArgs)
+    {
+        l->push_back(t.line_no);
+    }
 }
 
 Parser::poly_dec *Parser::parse_poly_decl_section(){
@@ -424,6 +495,7 @@ Token Parser::parse_input_statement(){
 Parser::poly_eval * Parser::parse_poly_eval(){  // F(args)
     Parser::poly_eval * apoly_eval = new Parser::poly_eval;
     Token t = parse_poly_name();
+    apoly_eval->theToken =t;
     apoly_eval->poly_name = t.lexeme;
     expect(LPAREN);
     apoly_eval->theArgs = parse_arg_list();
