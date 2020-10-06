@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <set>
 #include <algorithm>
+#include <cmath>
 
 
 
@@ -264,7 +265,6 @@ void Parser::parse_EC4args(Parser::arg *a ,vector<int> *l,map<string,int> *temp,
         l->push_back(t.line_no);
     }
 }
-
 void Parser::Error_Code5(){
     vector<int> *lineNu = new vector<int>;
     vector<string> *availParams = new vector<string>;
@@ -313,8 +313,6 @@ void Parser::parse_EC5args(Parser::arg * args,vector<string> *availParams,vector
         args=args->next;
     }
 }
-
-
 Parser::poly_dec *Parser::parse_poly_decl_section(){
     Parser::poly_dec *head_poly_dec;
     head_poly_dec = parse_poly_decl();
@@ -336,7 +334,6 @@ Parser::poly_dec *Parser::parse_poly_decl_section(){
     expect(SEMICOLON); 
     return apoly_dec;
 }
- 
 void Parser::parse_START(){
     expect(START);
     theSMTS =  parse_statement_list();
@@ -390,7 +387,6 @@ Parser::param_ID* Parser::parse_id_list(int n){
 Parser::term * Parser::parse_poly_body(){ // just calls term list  down there.
     return parse_term_list();
 }
-
 Parser::term * Parser::parse_term_list(){ // parses {3x^2 +2x + 2 } where each monomials and +- are terms
     Parser::term *head_term;
     head_term = parse_term();
@@ -469,7 +465,6 @@ Parser::monomial* Parser::parse_monomial(){ // 3x^2
     }
     return a_monomial;
 }
-
 void Parser::parse_inputs(){ // actually grabs all inputs ,  1 4 3 4 5
     storeInput(expect(NUM));
     Token t = lexer.peek(1);
@@ -604,6 +599,153 @@ Parser::arg *Parser::parse_arg(){ // x, y inside parenthesis
     }
     return anArg;
 }
+void Parser::execute_program(){
+    Parser::stmt * s = theSMTS;
+    Parser::poly_dec *p = thePolyDeclarations;
+    vector<int> ans;
+
+    while (s!=NULL)
+    {
+        if (s->stmt_type == 1) //POLY EVAL
+        {        
+            string polyName = s->p->poly_name;
+            while (p!=NULL)
+            {
+                if (p->name == polyName){
+                    break;
+                }
+                p = p->next_poly_dec;
+            }
+            Parser::arg *args = s->p->theArgs;
+            ans.push_back(eval_polynomial(p,args));
+            p = thePolyDeclarations;
+        }
+        s = s->next;
+    }
+    if (ans.size()>0)
+    {
+     
+     for (auto elem : ans)
+        {
+        cout << elem << "\n";
+        }
+        exit(1);
+    }
+}
+int Parser::eval_polynomial(Parser::poly_dec *p,Parser::arg *args){
+    return eval_terms(p->terms,args);
+}
+
+int Parser::eval_terms(Parser::term *t, Parser::arg *args){
+    int co = t->coefficient;
+    if (t->head_monomial!=NULL)
+    {
+        co *= eval_monomials(t->head_monomial,args);    
+    }
+    TokenType type = t->addOperator;
+    if (type == PLUS)
+    {
+        co += eval_terms(t->next,args);
+    }
+    else if (type == MINUS)
+    {
+        co -= eval_terms(t->next,args);
+    }
+    return co;
+}
+int Parser::eval_monomials(Parser::monomial *m,Parser::arg *args){
+    int num = eval_monomial(m,args);
+    if (m->next!=NULL)
+    {
+        num *= eval_monomial(m->next,args->next); 
+    }
+    return num;
+}
+int Parser::eval_monomial(Parser::monomial *m,Parser::arg *args){
+    
+    int num;
+    int exponent =1;
+    int order;
+    Parser::poly_dec *p2;
+    switch (args->arg_type)
+    {
+    case NUM:
+        num = args->value; // or you can do         num = args->theToken.lexeme;
+        break;
+    case ID:
+        order = variables[args->theToken.lexeme];
+        num = inputs[order];
+        exponent = m->exponent;
+        break;
+    case POLY:
+        p2 = thePolyDeclarations;
+        while (p2!=NULL)
+        {
+            if ( p2->theToken.lexeme == args->theToken.lexeme) // may not work
+            {
+                break;
+            }
+            p2 = p2->next_poly_dec;
+        }
+        num = eval_terms(p2->terms,args->p->theArgs);
+        exponent = m->exponent;
+        break;
+    default:
+        break;
+    }
+    return (int)pow((double)num,(double)exponent);
+}
+void Parser::execute_program2(){
+    vector<int> temp;
+    Parser::stmt *s = theSMTS;
+    Parser::poly_dec *p = thePolyDeclarations;
+    while (s!=NULL)
+    {
+        if (s->stmt_type==1)
+        {
+            Parser::arg *a = s->p->theArgs;
+            while (a!=NULL)
+            {
+                Token t = a->theToken;
+                if (t.token_type == NUM)
+                {
+                    temp.push_back(stoi(t.lexeme));
+                }
+                else if (t.token_type == ID)
+                {
+                    temp.push_back(variables[t.lexeme]);
+                }
+                // else
+                // {
+                //     /* code */
+                // }
+                
+            }
+            string polyName = s->p->poly_name;
+            while (p!=NULL)
+            {
+                if (p->name == polyName){
+                    break;
+                }
+                p = p->next_poly_dec;
+            }
+
+
+
+
+
+
+
+
+
+            
+        }p = thePolyDeclarations;
+        
+        s= s->next;
+    }
+    
+}
+
 // Memory Allocation
 void Parser::allocateMem(Token t){
     if (variables.find(t.lexeme)==variables.end()) // isn't present
@@ -622,7 +764,11 @@ int main()
     
 	Parser parser;
     parser.parse_input();
+    parser.execute_program(); //unfinished
     
 	
 }
 
+//t2 
+// expect 15
+// we get 9

@@ -104,6 +104,13 @@ class Parser {
     void allocateMem(Token t);
     void storeInput(Token t);
     void getOrder(poly_dec *apoly_dec);
+    void execute_program();
+    void execute_program2();
+    int eval_polynomial(poly_dec *p, arg *a);
+    int eval_terms(term *t,arg *args);
+    // int eval_term(term *t,arg *args);
+    int eval_monomials(monomial *m,arg *args);
+    int eval_monomial(monomial *m,arg *arg);
     Token expect(TokenType expected_type);
 };
 
